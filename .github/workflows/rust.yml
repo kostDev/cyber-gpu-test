@@ -13,8 +13,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build Docker image
-        run: docker build -t cyber-gpu-build .
+      - name: Build Docker image for ARM64
+        run: docker build --platform linux/arm64 -t cyber-gpu-build .
 
       - name: Extract build output
         run: |
