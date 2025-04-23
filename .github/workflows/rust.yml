@@ -1,4 +1,4 @@
-name: Cross Build (aarch64)
+name: Docker AArch64 Build
 
 on:
   push:
@@ -11,20 +11,29 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Install cross
-        run: cargo install cross
+      - name: Build Docker image
+        run: docker build -t cyber-gpu-build .
 
-      - name: Build custom Docker image with SDL2
-        run: docker build -t cyberfps-debug .
-
-      - name: Setup cross config
+      - name: Extract build output
         run: |
-          mkdir -p .cross
-          echo '[target.aarch64-unknown-linux-gnu]' > .cross/config.toml
-          echo 'image = "cyberfps-debug"' >> .cross/config.toml
+          docker create --name temp cyber-gpu-build
+          docker cp temp:/cyber-gpu-test/target/aarch64-unknown-linux-gnu/release/cyber-gpu-test ./cyber-gpu-test
+          docker rm temp
 
-      - name: Cross build (aarch64)
-        run: cross build --release --target aarch64-unknown-linux-gnu
+      - name: Archive binary to .tar.gz
+        run: |
+          tar -czvf cyber-gpu-test.tar.gz cyber-gpu-test
+
+      - name: Upload artifact (binary)
+        uses: actions/upload-artifact@v3
+        with:
+          name: cyber-gpu-test
+          path: ./cyber-gpu-test
+
+      - name: Upload artifact (archive)
+        uses: actions/upload-artifact@v3
+        with:
+          name: cyber-gpu-test-archive
+          path: ./cyber-gpu-test.tar.gz
