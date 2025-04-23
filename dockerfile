@@ -1,4 +1,4 @@
-FROM ubuntu:22.04
+FROM --platform=linux/arm64 ubuntu:22.04
 
 # 🧰 Додаємо підтримку ARM64 архітектури
 RUN dpkg --add-architecture arm64 && \
