@@ -1,16 +1,14 @@
 FROM --platform=linux/arm64 ubuntu:22.04
 
 # 🧰 Додаємо підтримку ARM64 архітектури
-RUN dpkg --add-architecture arm64 && \
-    apt-get update && \
-    apt-get install -y \
+RUN apt-get update && apt-get install -y \
     curl \
     git \
     build-essential \
     pkg-config \
+    libsdl2-dev \
+    libsdl2-ttf-dev \
     gcc-aarch64-linux-gnu \
-    libsdl2-dev:arm64 \
-    libsdl2-ttf-dev:arm64 \
     ca-certificates
 
 # ⛓️ Встановлюємо Rust
