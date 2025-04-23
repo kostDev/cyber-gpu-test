@@ -36,7 +36,11 @@ jobs:
             --platform linux/arm64 \
             --cache-from=type=local,src=/tmp/.buildx-cache \
             --cache-to=type=local,dest=/tmp/.buildx-cache,mode=max \
-            -t cyber-gpu-build .
+            -t cyber-gpu-build . \
+            --load
+
+      - name: List built images
+        run: docker images
 
       - name: Extract binary
         run: |
