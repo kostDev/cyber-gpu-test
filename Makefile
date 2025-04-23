@@ -1,10 +1,9 @@
-# Назва твого проєкту (можна змінити)
 PROJECT_NAME := cyber-gpu-test
 
-# Цільова архітектура
+# Цільова архітектура build only inside docker
 TARGET := aarch64-unknown-linux-gnu
 
-# IP адреса твоєї консолі
+# IP адреса твоєї консолі root@your.address bind in system with auto ssh
 DEVICE := cyberdog
 
 # Куди копіювати на консолі
@@ -20,7 +19,7 @@ RG35 := ssh cyberdog
 .PHONY: all build deploy ssh clean docker run
 
 all: build deploy
-
+# build only inside docker
 build:
 	cargo build --release --target=$(TARGET)
 
