@@ -1,14 +1,18 @@
 //! Cyberico GPU Stress Test v0.1
 //! Візуальний тест для GPU/VRAM на Knulli / RG35XX Plus
+use sdl2::controller::Button;
 use sdl2::event::Event;
 use sdl2::pixels::Color;
 use sdl2::rect::Rect;
 use std::time::{Duration, Instant};
+use std::fmt::Write;
 use rand::{Rng};
+mod ui;
+use ui::{menu::UiMenu, label::UiLabel};
 
-const NUM_OBJECTS: usize = 600;
 const SCREEN_WIDTH: u32 = 640;
 const SCREEN_HEIGHT: u32 = 480;
+const NUM_OBJECTS: usize = 4; // 600
 
 struct BoxObject {
     rect: Rect,
@@ -40,6 +44,13 @@ fn random_box() -> BoxObject {
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let sdl_context = sdl2::init()?;
     let video_subsystem = sdl_context.video()?;
+    let controller_subsystem = sdl_context.game_controller()?;
+    let available = controller_subsystem.num_joysticks()?;
+    let mut _controller = None;
+    if available > 0 && controller_subsystem.is_game_controller(0) {
+        _controller = Some(controller_subsystem.open(0)?);
+    }
+
 
     let window = video_subsystem
         .window("GPU Stress Test", SCREEN_WIDTH, SCREEN_HEIGHT)
@@ -65,14 +76,50 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut frame_count = 0;
     let mut last_time = Instant::now();
     let mut fps = 0;
+    let mut _btn_input_text = "Button:".to_string();
 
-    let last_input_at = Instant::now();
-    let timeout_duration = Duration::from_secs(60);
+
+    let mut menu = UiMenu::new(
+        vec!["Start Stress Test", "Run Particle Mode", "Exit"],
+        sdl2::rect::Point::new(210, 180),
+        40,
+    );
+
+    let mut fps_text_buf = String::new();
+    let mut fps_label = UiLabel::new(
+        "FPS: 0",
+        sdl2::rect::Point::new(2, 4),
+        Color::RGB(255, 255, 255),
+        false,
+        &font,
+    )?;
+    let mut btn_input_label = UiLabel::new(
+        "Button: ",
+        sdl2::rect::Point::new(2, 44),
+        Color::RGB(255, 255, 255),
+        false,
+        &font,
+    )?;
 
     'running: loop {
         for event in event_pump.poll_iter() {
-            if let Event::Quit { .. } = event {
-                break 'running;
+            match event {
+                Event::ControllerButtonDown { button, .. } => {
+                    _btn_input_text = format!("Button: {:?}", button);
+                    btn_input_label.update_text(&_btn_input_text, &font)?;
+                    match button {
+                        Button::DPadDown =>  menu.move_down(),
+                        Button::DPadUp => menu.move_up(),
+                        Button::Start => {
+                            if menu.selected == menu.items.len() - 1 {
+                                break 'running
+                            }
+                        },
+                        _ => {}
+                    }
+                }
+                Event::Quit { .. } => break 'running,
+                _ => {}
             }
         }
 
@@ -90,6 +137,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
 
         canvas.set_draw_color(Color::RGB(20, 20, 20));
+        canvas.set_blend_mode(sdl2::render::BlendMode::None);
         canvas.clear();
 
         for obj in &objects {
@@ -103,27 +151,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             fps = frame_count;
             frame_count = 0;
             last_time = Instant::now();
+            fps_text_buf.clear();
+            write!(&mut fps_text_buf, "FPS: {}", fps)?;
+            fps_label.update_text(&fps_text_buf, &font)?;
         }
-        let fps_text = format!("FPS: {}", fps);
-        let surface = font.render(&fps_text).blended(Color::RGB(255, 255, 255))?;
-        // Background cover for FPS text
-        canvas.set_blend_mode(sdl2::render::BlendMode::Blend);
-        canvas.set_draw_color(Color::RGBA(0, 0, 0, 148));
-        // (fps_text.len() * 20) as u32
-        canvas.fill_rect(Rect::new(0, 0, surface.width() + 8, surface.height() + 8))?;
-        canvas.set_blend_mode(sdl2::render::BlendMode::None);
-        // FPS text render
-        let texture = texture_creator.create_texture_from_surface(&surface)?;
-        let target = sdl2::rect::Rect::new(2, 4, surface.width(), surface.height());
-        canvas.copy(&texture, None, Some(target))?;
+
+        menu.draw(&mut canvas, &font, &texture_creator)?;
+        fps_label.draw(&mut canvas, &texture_creator)?;
+        btn_input_label.draw(&mut canvas, &texture_creator)?;
 
         canvas.present();
         std::thread::sleep(Duration::from_millis(16));
 
-        if last_input_at.elapsed() >= timeout_duration {
-            println!("⏱️ Немає активності 60 секунд — вихід...");
-            break 'running;
-        }
     }
 
     Ok(())
