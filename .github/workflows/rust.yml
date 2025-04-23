@@ -20,8 +20,23 @@ jobs:
         with:
           platforms: arm64
 
+      # 💾 Кеш Docker-шарів
+      - name: Cache Docker layers
+        uses: actions/cache@v4
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ hashFiles('Dockerfile') }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
+
       - name: Build Docker image (ARM64)
-        run: docker build --platform linux/arm64 -t cyber-gpu-build .
+        run: |
+          docker buildx create --use --driver docker-container
+          docker buildx build \
+            --platform linux/arm64 \
+            --cache-from=type=local,src=/tmp/.buildx-cache \
+            --cache-to=type=local,dest=/tmp/.buildx-cache,mode=max \
+            -t cyber-gpu-build .
 
       - name: Extract binary
         run: |
