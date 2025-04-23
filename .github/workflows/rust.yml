@@ -11,10 +11,20 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       - name: Install cross
         run: cargo install cross
 
-      - name: Cross build for aarch64
-        run: cross build --target aarch64-unknown-linux-gnu --release
+      - name: Build custom Docker image with SDL2
+        run: docker build -t cyberfps-debug .
+
+      - name: Setup cross config
+        run: |
+          mkdir -p .cross
+          echo '[target.aarch64-unknown-linux-gnu]' > .cross/config.toml
+          echo 'image = "cyberfps-debug"' >> .cross/config.toml
+
+      - name: Cross build (aarch64)
+        run: cross build --release --target aarch64-unknown-linux-gnu
