@@ -1,4 +1,4 @@
-name: Docker AArch64 Build
+name: Build Cyber GPU Test (ARM64)
 
 on:
   push:
@@ -11,28 +11,34 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - name: Build Docker image for ARM64
+      # 🧠 Вмикаємо емуляцію ARM64
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+        with:
+          platforms: arm64
+
+      - name: Build Docker image (ARM64)
         run: docker build --platform linux/arm64 -t cyber-gpu-build .
 
-      - name: Extract build output
+      - name: Extract binary
         run: |
           docker create --name temp cyber-gpu-build
           docker cp temp:/cyber-gpu-test/target/aarch64-unknown-linux-gnu/release/cyber-gpu-test ./cyber-gpu-test
           docker rm temp
 
       - name: Archive binary to .tar.gz
-        run: |
-          tar -czvf cyber-gpu-test.tar.gz cyber-gpu-test
+        run: tar -czvf cyber-gpu-test.tar.gz cyber-gpu-test
 
-      - name: Upload artifact (binary)
+      - name: Upload binary
         uses: actions/upload-artifact@v4
         with:
           name: cyber-gpu-test
           path: ./cyber-gpu-test
 
-      - name: Upload artifact (archive)
+      - name: Upload archive
         uses: actions/upload-artifact@v4
         with:
           name: cyber-gpu-test-archive
