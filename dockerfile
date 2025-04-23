@@ -1,6 +1,5 @@
-FROM --platform=linux/arm64 ubuntu:22.04
+FROM ubuntu:22.04
 
-# 🧰 Додаємо підтримку ARM64 архітектури
 RUN apt-get update && apt-get install -y \
     curl \
     git \
@@ -11,22 +10,15 @@ RUN apt-get update && apt-get install -y \
     gcc-aarch64-linux-gnu \
     ca-certificates
 
-# ⛓️ Встановлюємо Rust
 RUN curl https://sh.rustup.rs -sSf | bash -s -- -y
 ENV PATH="/root/.cargo/bin:$PATH"
-
-# 🎯 Додаємо ARM64 ціль
 RUN rustup target add aarch64-unknown-linux-gnu
 
-# 🧱 Переходимо в директорію проєкту
 WORKDIR /cyber-gpu-test
 COPY . .
 
-# ⚙️ Створюємо `.cargo/config.toml` з вказанням лінкера і шляхом до lib'ів
-RUN mkdir -p .cargo && \
-    echo '[target.aarch64-unknown-linux-gnu]' > .cargo/config.toml && \
-    echo 'linker = "aarch64-linux-gnu-gcc"' >> .cargo/config.toml && \
-    echo 'rustflags = ["-C", "link-args=-L/usr/lib/aarch64-linux-gnu"]' >> .cargo/config.toml
+RUN mkdir -p .cargo
+RUN echo '[target.aarch64-unknown-linux-gnu]' > .cargo/config.toml
+RUN echo 'linker = "aarch64-linux-gnu-gcc"' >> .cargo/config.toml
 
-# 🚀 Компілюємо
 RUN cargo build --release --target=aarch64-unknown-linux-gnu
