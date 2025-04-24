@@ -41,6 +41,10 @@ impl<'a> UiMenu<'a> {
     }
 
     pub fn draw<T>(&self, canvas: &mut Canvas<Window>, font: &Font, texture_creator: &TextureCreator<T>) -> Result<(), String> {
+        if self.items.is_empty() {
+            return Ok(());
+        }
+
         for (i, item) in self.items.iter().enumerate() {
             let color = if i == self.selected {
                 Color::RGB(255, 255, 0)
