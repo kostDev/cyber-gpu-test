@@ -65,5 +65,5 @@ impl<'a> UiMenu<'a> {
     }
 }
 
-// Later we can expand this with Button, Checkbox, ScrollList, etc.
-// Goal: composable UI that can be customized or reused across future Cyber tools.
+// TODO: Later expand this with Button, Checkbox, ScrollList, etc.
+// TODO: Goal: composable UI that can be customized or reused across future Cyber tools.
