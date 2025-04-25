@@ -1,21 +1,22 @@
 //! Minimal UI library base for Cyber GPU Test
 //! Provides a simple structure for rendering interactive UI components like menus
-
+use sdl2::controller::Button;
 use sdl2::pixels::Color;
 use sdl2::rect::{Point, Rect};
 use sdl2::render::{Canvas, TextureCreator};
 use sdl2::ttf::Font;
 use sdl2::video::Window;
+use crate::ui::enums::MenuMode;
 
 pub struct UiMenu<'a> {
-    pub items: Vec<&'a str>,
+    pub items: Vec<(MenuMode, &'a str)>,
     pub selected: usize,
     pub position: Point,
     pub spacing: i32,
 }
 
 impl<'a> UiMenu<'a> {
-    pub fn new(items: Vec<&'a str>, position: Point, spacing: i32) -> Self {
+    pub fn new(items: Vec<(MenuMode, &'a str)>, position: Point, spacing: i32) -> Self {
         Self {
             items,
             selected: 0,
@@ -45,14 +46,14 @@ impl<'a> UiMenu<'a> {
             return Ok(());
         }
 
-        for (i, item) in self.items.iter().enumerate() {
+        for (i, (_, label)) in self.items.iter().enumerate() {
             let color = if i == self.selected {
                 Color::RGB(255, 255, 0)
             } else {
                 Color::RGB(200, 200, 200)
             };
 
-            let surface = font.render(item).blended(color).map_err(|e| e.to_string())?;
+            let surface = font.render(label).blended(color).map_err(|e| e.to_string())?;
             let texture = texture_creator.create_texture_from_surface(&surface).map_err(|e| e.to_string())?;
             let target = Rect::new(
                 self.position.x,
@@ -66,6 +67,23 @@ impl<'a> UiMenu<'a> {
         }
 
         Ok(())
+    }
+
+    pub fn handle_menu_input(&mut self, button: Button, running: &mut bool) {
+        match button {
+            Button::DPadDown => self.move_down(),
+            Button::DPadUp => self.move_up(),
+            Button::Start | Button::B => {
+                let (mode, _) = self.items[self.selected];
+                match mode {
+                    MenuMode::Basic => println!("▶️ Запускаємо Basic stress test!"),
+                    MenuMode::FillScreen => println!("▶️ Запускаємо FillScreen test!"),
+                    MenuMode::Particle => println!("⚙️ Particle test у розробці."),
+                    MenuMode::Exit => *running = false,
+                }
+            }
+            _ => {}
+        }
     }
 }
 

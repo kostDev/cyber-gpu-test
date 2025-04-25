@@ -3,6 +3,7 @@ use sdl2::{render::{Canvas, TextureCreator}, video::Window, ttf::Font};
 use sdl2::pixels::Color;
 use sdl2::rect::{Point, Rect};
 use crate::ui::{label::UiLabel, menu::UiMenu};
+use crate::ui::enums::MenuMode;
 
 pub enum UiComponents<'a> {
     Label(UiLabel),
@@ -44,7 +45,7 @@ impl<'ttf, 'rw, T> UiManager<'ttf, 'rw, T> {
     }
 
     pub fn create_menu(
-        &mut self, key: &str, items: Vec<&'rw str>, position: Point, item_height: i32
+        &mut self, key: &str, items: Vec<(MenuMode, &'rw str)>, position: Point, item_height: i32
     )  {
         let menu = UiMenu::new(items, position, item_height);
         self.components.insert(key.to_string(), UiComponents::Menu(menu));

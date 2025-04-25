@@ -1,6 +1,5 @@
-//! Cyberico GPU Stress Test v0.1
+//! Cyber GPU Stress Test v0.1
 //! Візуальний тест для GPU/VRAM на Knulli / RG35XX Plus
-use sdl2::controller::Button;
 use sdl2::event::Event;
 use sdl2::pixels::Color;
 use sdl2::rect::Rect;
@@ -10,7 +9,7 @@ use std::fmt::Write;
 use rand::Rng;
 
 mod ui;
-use ui::manager::UiManager;
+use ui::{manager::UiManager, enums::MenuMode};
 
 const NUM_OBJECTS: usize = 12; // 30_000
 
@@ -92,7 +91,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut last_time = Instant::now();
     let mut _fps = 0;
     let mut fps_text_buf = String::new();
+
+    let items = vec![
+        (MenuMode::Basic, "GPU Stress Test"),
+        (MenuMode::FillScreen, "Run Boxes Mode"),
+        (MenuMode::Particle, "Run Particle Mode"),
+        (MenuMode::Exit, "Exit"),
+    ];
+
     // UI
+    ui_manager.create_menu(
+        "main_menu",
+        items,
+        sdl2::rect::Point::new(210, 180),
+        40,
+    );
     ui_manager.create_label(
         "fps",
         "FPS: 0",
@@ -100,45 +113,26 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         Color::RGB(255, 255, 255),
         false,
     )?;
-    ui_manager.create_menu(
-        "main_menu",
-        vec!["Start Stress Test", "Run Particle Mode", "Exit"],
-        sdl2::rect::Point::new(210, 180),
-        40,
-    );
 
-    'running: loop {
+    let mut running = true;
+    while running {
         for event in event_pump.poll_iter() {
             match event {
                 Event::ControllerButtonDown { button, .. } => {
                     if let Some(menu) = ui_manager.get_menu_mut("main_menu") {
-                        match button {
-                            Button::DPadDown => menu.move_down(),
-                            Button::DPadUp => menu.move_up(),
-                            // anbernic have issue with button position A -> B, Y -> X
-                            Button::Start | Button::B => {
-                                if menu.selected == menu.items.len() - 1 {
-                                    break 'running;
-                                }
-                            }
-                            _ => {}
-                        }
+                        menu.handle_menu_input(button, &mut running);
                     }
                 }
-                Event::Quit { .. } => break 'running,
                 _ => {}
             }
         }
-        // Move all objects
-        for obj in &mut objects {
-            obj.update((display_mode.w, display_mode.h));
-        }
 
         ui_manager.clear_background(Color::RGB(20, 20, 20));
-
-        for obj in &objects {
-            ui_manager.draw_rect(obj.color, obj.rect)?;
-        }
+        // Move all objects & update
+        objects.iter_mut().try_for_each(|obj| {
+            obj.update((display_mode.w, display_mode.h));
+            ui_manager.draw_rect(obj.color, obj.rect)
+        })?;
 
         // FPS Calculation
         frame_count += 1;
