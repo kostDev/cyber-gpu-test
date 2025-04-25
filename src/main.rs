@@ -2,57 +2,11 @@
 //! Візуальний тест для GPU/VRAM на Knulli / RG35XX Plus
 use sdl2::event::Event;
 use sdl2::pixels::Color;
-use sdl2::rect::Rect;
-use sdl2::video::{DisplayMode};
 use std::time::Instant;
 use std::fmt::Write;
-use rand::Rng;
 
 mod ui;
-use ui::{manager::UiManager, enums::MenuMode};
-
-const NUM_OBJECTS: usize = 12; // 30_000
-
-struct BoxObject {
-    rect: Rect,
-    color: Color,
-    velocity: (i32, i32),
-}
-
-impl BoxObject {
-    fn update(&mut self, bounds: (i32, i32)) {
-        self.rect.set_x(self.rect.x() + self.velocity.0);
-        self.rect.set_y(self.rect.y() + self.velocity.1);
-
-        if self.rect.left() < 0 || self.rect.right() > bounds.0 {
-            self.velocity.0 *= -1;
-        }
-        if self.rect.top() < 0 || self.rect.bottom() > bounds.1 {
-            self.velocity.1 *= -1;
-        }
-    }
-}
-
-fn random_box(display: &DisplayMode) -> BoxObject {
-    let mut rng = rand::rng();
-    let x = rng.random_range(0..(&display.w - 20));
-    let y = rng.random_range(0..(&display.h - 20)) as i32;
-    let w = rng.random_range(10..30) as u32;
-    let h = rng.random_range(10..30) as u32;
-    let dx = rng.random_range(-3..4);
-    let dy = rng.random_range(-3..4);
-    let color = Color::RGB(
-        rng.random::<u8>(),
-        rng.random::<u8>(),
-        rng.random::<u8>(),
-    );
-
-    BoxObject {
-        rect: Rect::new(x, y, w, h),
-        color,
-        velocity: (dx, dy),
-    }
-}
+use ui::{manager::UiManager, enums::MenuMode, rect::BoxObject};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let sdl_context = sdl2::init()?;
@@ -84,8 +38,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let texture_creator = canvas.texture_creator();
     let mut ui_manager = UiManager::new(&mut canvas, &font, &texture_creator);
 
+    let total_objects: usize = 12; // 30_000
     let mut event_pump = sdl_context.event_pump()?;
-    let mut objects: Vec<BoxObject> = (0..NUM_OBJECTS).map(|_| random_box(&display_mode)).collect();
+    let mut objects: Vec<BoxObject> = (0..total_objects)
+        .map(|_| BoxObject::new((display_mode.w, display_mode.h)))
+        .collect();
 
     let mut frame_count = 0;
     let mut last_time = Instant::now();
@@ -114,13 +71,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         false,
     )?;
 
-    let mut running = true;
-    while running {
+    'running: loop {
         for event in event_pump.poll_iter() {
             match event {
                 Event::ControllerButtonDown { button, .. } => {
-                    if let Some(menu) = ui_manager.get_menu_mut("main_menu") {
-                        menu.handle_menu_input(button, &mut running);
+                    if let Some((mode, true)) = ui_manager
+                        .get_menu_mut("main_menu")
+                        .map(|m| m.handle_menu_input(button))
+                    {
+                        match mode {
+                            MenuMode::Basic => { /* ... */ }
+                            MenuMode::FillScreen => { /* ... */ }
+                            MenuMode::Particle => { /* ... */ }
+                            MenuMode::Exit => break 'running,
+                        }
                     }
                 }
                 _ => {}

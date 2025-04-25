@@ -10,7 +10,8 @@ use crate::ui::enums::MenuMode;
 
 pub struct UiMenu<'a> {
     pub items: Vec<(MenuMode, &'a str)>,
-    pub selected: usize,
+    pub item_index: usize,
+    pub selected: bool,
     pub position: Point,
     pub spacing: i32,
 }
@@ -19,25 +20,26 @@ impl<'a> UiMenu<'a> {
     pub fn new(items: Vec<(MenuMode, &'a str)>, position: Point, spacing: i32) -> Self {
         Self {
             items,
-            selected: 0,
+            item_index: 0,
+            selected: false,
             position,
             spacing,
         }
     }
 
     pub fn move_up(&mut self) {
-        if self.selected > 0 {
-            self.selected -= 1;
+        if self.item_index > 0 {
+            self.item_index -= 1;
         } else {
-            self.selected = self.items.len() - 1;
+            self.item_index = self.items.len() - 1;
         }
     }
 
     pub fn move_down(&mut self) {
-        if self.selected + 1 < self.items.len() {
-            self.selected += 1;
+        if self.item_index + 1 < self.items.len() {
+            self.item_index += 1;
         } else {
-            self.selected = 0;
+            self.item_index = 0;
         }
     }
 
@@ -47,7 +49,7 @@ impl<'a> UiMenu<'a> {
         }
 
         for (i, (_, label)) in self.items.iter().enumerate() {
-            let color = if i == self.selected {
+            let color = if i == self.item_index {
                 Color::RGB(255, 255, 0)
             } else {
                 Color::RGB(200, 200, 200)
@@ -69,21 +71,14 @@ impl<'a> UiMenu<'a> {
         Ok(())
     }
 
-    pub fn handle_menu_input(&mut self, button: Button, running: &mut bool) {
+    pub fn handle_menu_input(&mut self, button: Button) -> (MenuMode, bool) {
         match button {
             Button::DPadDown => self.move_down(),
             Button::DPadUp => self.move_up(),
-            Button::Start | Button::B => {
-                let (mode, _) = self.items[self.selected];
-                match mode {
-                    MenuMode::Basic => println!("▶️ Запускаємо Basic stress test!"),
-                    MenuMode::FillScreen => println!("▶️ Запускаємо FillScreen test!"),
-                    MenuMode::Particle => println!("⚙️ Particle test у розробці."),
-                    MenuMode::Exit => *running = false,
-                }
-            }
+            Button::Start | Button::B => return (self.items[self.item_index].0, true),
             _ => {}
         }
+        (self.items[self.item_index].0, false)
     }
 }
 
