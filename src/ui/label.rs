@@ -12,6 +12,7 @@ pub struct UiLabel {
     pub use_alpha: bool,
     pub dirty: bool,
     pub surface: Option<Surface<'static>>,
+    pub visible: bool,
 }
 
 impl UiLabel {
@@ -24,6 +25,7 @@ impl UiLabel {
             use_alpha,
             dirty: true,
             surface: Some(surface),
+            visible: false
         })
     }
 

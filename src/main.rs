@@ -1,12 +1,15 @@
 //! Cyber GPU Stress Test v0.1
 //! Візуальний тест для GPU/VRAM на Knulli / RG35XX Plus
 use sdl2::event::Event;
-use sdl2::pixels::Color;
 use std::time::Instant;
 use std::fmt::Write;
 
 mod ui;
 use ui::{manager::UiManager, enums::MenuMode, rect::BoxObject};
+use crate::ui::colors::theme::{BACKGROUND, FPS_LABEL};
+
+pub const UI_KEY_MENU: &str = "main_menu";
+pub const UI_KEY_FPS: &str = "fps";
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let sdl_context = sdl2::init()?;
@@ -58,16 +61,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // UI
     ui_manager.create_menu(
-        "main_menu",
+        UI_KEY_MENU,
         items,
         sdl2::rect::Point::new(210, 180),
         40,
     );
     ui_manager.create_label(
-        "fps",
+        UI_KEY_FPS,
         "FPS: 0",
         sdl2::rect::Point::new(2, 4),
-        Color::RGB(255, 255, 255),
+        FPS_LABEL,
         false,
     )?;
 
@@ -75,15 +78,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         for event in event_pump.poll_iter() {
             match event {
                 Event::ControllerButtonDown { button, .. } => {
-                    if let Some((mode, true)) = ui_manager
-                        .get_menu_mut("main_menu")
+                    if let Some((selected, mode)) = ui_manager
+                        .get_menu_mut(UI_KEY_MENU)
                         .map(|m| m.handle_menu_input(button))
                     {
                         match mode {
                             MenuMode::Basic => { /* ... */ }
                             MenuMode::FillScreen => { /* ... */ }
                             MenuMode::Particle => { /* ... */ }
-                            MenuMode::Exit => break 'running,
+                            MenuMode::Exit => if selected { break 'running },
                         }
                     }
                 }
@@ -91,7 +94,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
 
-        ui_manager.clear_background(Color::RGB(20, 20, 20));
+        ui_manager.clear_background(BACKGROUND);
         // Move all objects & update
         objects.iter_mut().try_for_each(|obj| {
             obj.update((display_mode.w, display_mode.h));
@@ -104,9 +107,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             _fps = frame_count;
             frame_count = 0;
             last_time = Instant::now();
-            fps_text_buf.clear();
-            write!(&mut fps_text_buf, "FPS: {}", _fps)?;
-            ui_manager.update_text("fps", &fps_text_buf)
+
+            let new_fps = format!("FPS: {}", _fps);
+
+            if new_fps != fps_text_buf {
+                fps_text_buf.clear();
+                fps_text_buf.push_str(&new_fps);
+                ui_manager.update_text(UI_KEY_FPS, &fps_text_buf);
+            }
         }
 
         ui_manager.draw_all()?;

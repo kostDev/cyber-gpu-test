@@ -1,19 +1,19 @@
 //! Minimal UI library base for Cyber GPU Test
 //! Provides a simple structure for rendering interactive UI components like menus
 use sdl2::controller::Button;
-use sdl2::pixels::Color;
 use sdl2::rect::{Point, Rect};
 use sdl2::render::{Canvas, TextureCreator};
 use sdl2::ttf::Font;
 use sdl2::video::Window;
+use crate::ui::colors::theme::{TEXT_HIGHLIGHTED, TEXT_NORMAL};
 use crate::ui::enums::MenuMode;
 
 pub struct UiMenu<'a> {
     pub items: Vec<(MenuMode, &'a str)>,
     pub item_index: usize,
-    pub selected: bool,
     pub position: Point,
     pub spacing: i32,
+    pub visible: bool,
 }
 
 impl<'a> UiMenu<'a> {
@@ -21,9 +21,9 @@ impl<'a> UiMenu<'a> {
         Self {
             items,
             item_index: 0,
-            selected: false,
             position,
             spacing,
+            visible: false
         }
     }
 
@@ -44,15 +44,15 @@ impl<'a> UiMenu<'a> {
     }
 
     pub fn draw<T>(&self, canvas: &mut Canvas<Window>, font: &Font, texture_creator: &TextureCreator<T>) -> Result<(), String> {
-        if self.items.is_empty() {
+        if self.items.is_empty() || !self.visible {
             return Ok(());
         }
 
         for (i, (_, label)) in self.items.iter().enumerate() {
             let color = if i == self.item_index {
-                Color::RGB(255, 255, 0)
+                TEXT_HIGHLIGHTED
             } else {
-                Color::RGB(200, 200, 200)
+                TEXT_NORMAL
             };
 
             let surface = font.render(label).blended(color).map_err(|e| e.to_string())?;
@@ -71,14 +71,18 @@ impl<'a> UiMenu<'a> {
         Ok(())
     }
 
-    pub fn handle_menu_input(&mut self, button: Button) -> (MenuMode, bool) {
+    pub fn handle_menu_input(&mut self, button: Button) -> (bool, MenuMode) {
         match button {
             Button::DPadDown => self.move_down(),
             Button::DPadUp => self.move_up(),
-            Button::Start | Button::B => return (self.items[self.item_index].0, true),
+            //                                  selected status, MenuMode
+            Button::Start | Button::B => {
+                // self.visible = false;
+                return (true, self.items[self.item_index].0)
+            },
             _ => {}
         }
-        (self.items[self.item_index].0, false)
+        (false, self.items[self.item_index].0) // selected status, MenuMode
     }
 }
 

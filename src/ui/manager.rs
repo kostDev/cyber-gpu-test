@@ -54,8 +54,12 @@ impl<'ttf, 'rw, T> UiManager<'ttf, 'rw, T> {
     pub fn draw_all(&mut self) -> Result<(), String> {
         for ui in self.components.values_mut() {
             match ui {
-                UiComponents::Label(l) => l.draw(self.canvas, self.texture_creator)?,
-                UiComponents::Menu(m) => m.draw(self.canvas, self.font, self.texture_creator)?,
+                UiComponents::Label(l) => {
+                    if l.visible { l.draw(self.canvas, self.texture_creator)? };
+                }
+                UiComponents::Menu(m) => {
+                    if m.visible { m.draw(self.canvas, self.font, self.texture_creator)? };
+                }
             }
         }
         Ok(())
@@ -100,5 +104,14 @@ impl<'ttf, 'rw, T> UiManager<'ttf, 'rw, T> {
         self.canvas.set_draw_color(color);
         self.canvas.fill_rect(rect)?;
         Ok(())
+    }
+
+    pub fn change_visibility(&mut self, name: &str, visible: bool) {
+        if let Some(component) = self.components.get_mut(name) {
+            match component {
+                UiComponents::Label(label) => label.visible = visible,
+                UiComponents::Menu(menu) => menu.visible = visible,
+            }
+        }
     }
 }
