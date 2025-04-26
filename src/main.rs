@@ -3,6 +3,8 @@
 use std::time::Instant;
 use std::fmt::Write;
 use std::fs;
+use rand::Rng;
+use sdl2::controller::Button;
 use sdl2::event::Event;
 use sdl2::ttf::Font;
 
@@ -64,7 +66,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let texture_creator = canvas.texture_creator();
 
     let mut event_pump = sdl_context.event_pump()?;
-    let total_objects: usize = 12; // 30_000
+    let mut rng = rand::rng();
+    let total_objects: usize = rng.random_range(3..16) as usize; // 30_000
     let mut objects: Vec<BoxObject> = (0..total_objects)
         .map(|_| BoxObject::new((display_mode.w, display_mode.h)))
         .collect();
@@ -121,15 +124,24 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         for event in event_pump.poll_iter() {
             match event {
                 Event::ControllerButtonDown { button, .. } => {
-                    if let (selected, mode) = menu.handle_menu_input(button)
-                    {
-                        match mode {
-                            MenuMode::Basic => { /* ... */ }
-                            MenuMode::FillScreen => { /* ... */ }
-                            MenuMode::Particle => { /* ... */ }
-                            MenuMode::Exit => if selected { break 'running },
+                    match button {
+                        Button::Guide => {
+                            menu.show();
                         }
+                        Button::DPadDown => menu.move_down(),
+                        Button::DPadUp => menu.move_up(),
+                        Button::Start | Button::B => {
+                            match menu.handle_select() {
+                                MenuMode::Basic => { /* ... */ }
+                                MenuMode::FillScreen => { /* ... */ }
+                                MenuMode::Particle => { /* ... */ }
+                                MenuMode::Exit => { break 'running },
+                                _ => {}
+                            }
+                        }
+                        _ => {}
                     }
+
                 }
                 _ => {}
             }

@@ -13,7 +13,7 @@ pub struct UiMenu<'a> {
     pub item_index: usize,
     pub position: Point,
     pub spacing: i32,
-    pub visible: bool,
+    visible: bool,
 }
 
 impl <'a> UiMenu<'a> {
@@ -43,8 +43,24 @@ impl <'a> UiMenu<'a> {
         }
     }
 
+    pub fn hide(&mut self) {
+        if self.visible {
+            self.visible = false;
+        }
+    }
+
+    pub fn show(&mut self) {
+        if !self.visible {
+            self.visible = true;
+        }
+    }
+
     pub fn draw<T>(&self, canvas: &mut Canvas<Window>, texture_creator: &TextureCreator<T>, font: &Font) -> Result<(), String> {
-        if self.items.is_empty() || !self.visible {
+        if !self.visible {
+            return Ok(());
+        }
+
+        if self.items.is_empty() {
             return Ok(());
         }
 
@@ -71,20 +87,10 @@ impl <'a> UiMenu<'a> {
         Ok(())
     }
 
-    pub fn handle_menu_input(&mut self, button: Button) -> (bool, MenuMode) {
-        match button {
-            Button::DPadDown => self.move_down(),
-            Button::DPadUp => self.move_up(),
-            //                                  selected status, MenuMode
-            Button::Start | Button::B => {
-                // self.visible = false;
-                return (true, self.items[self.item_index].0)
-            },
-            _ => {}
-        }
-        (false, self.items[self.item_index].0) // selected status, MenuMode
+    pub fn handle_select(&mut self) -> MenuMode {
+        self.items[self.item_index].0
     }
 }
 
 // TODO: Later expand this with Button, Checkbox, ScrollList, etc.
-// TODO: Goal: composable UI that can be customized or reused across future Cyber tools.
+// TODO: Goal: composable UI that can be customized or reused across future CyberDog tools.
