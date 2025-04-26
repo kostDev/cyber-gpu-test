@@ -16,14 +16,14 @@ pub struct UiMenu<'a> {
     pub visible: bool,
 }
 
-impl<'a> UiMenu<'a> {
+impl <'a> UiMenu<'a> {
     pub fn new(items: Vec<(MenuMode, &'a str)>, position: Point, spacing: i32) -> Self {
         Self {
             items,
             item_index: 0,
             position,
             spacing,
-            visible: false
+            visible: true,
         }
     }
 

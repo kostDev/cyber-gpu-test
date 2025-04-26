@@ -4,6 +4,7 @@ use sdl2::render::{Canvas, TextureCreator};
 use sdl2::surface::Surface;
 use sdl2::ttf::Font;
 use sdl2::video::Window;
+use crate::ui::colors::theme::MaybeColor;
 
 pub struct UiLabel {
     pub text: String,
@@ -25,16 +26,20 @@ impl UiLabel {
             use_alpha,
             dirty: true,
             surface: Some(surface),
-            visible: false
+            visible: true,
         })
     }
 
-    pub fn update_text(&mut self, new_text: &str, font: &Font) -> Result<(), String> {
-        if self.text != new_text {
+    pub fn update_text(&mut self, new_text: &str, font: &Font, color: MaybeColor) -> Result<(), String> {
+        let new_color = color.unwrap_or(self.color);
+
+        if self.text != new_text ||  self.color != new_color {
             self.text = new_text.to_string();
+            self.color = new_color;
             self.surface = Some(font.render(&self.text).blended(self.color).map_err(|e| e.to_string())?);
             self.dirty = true;
         }
+
         Ok(())
     }
 

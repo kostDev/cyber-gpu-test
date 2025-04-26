@@ -1,15 +1,33 @@
 //! Cyber GPU Stress Test v0.1
 //! Візуальний тест для GPU/VRAM на Knulli / RG35XX Plus
-use sdl2::event::Event;
 use std::time::Instant;
 use std::fmt::Write;
+use std::fs;
+use sdl2::event::Event;
+use sdl2::ttf::Font;
 
 mod ui;
-use ui::{manager::UiManager, enums::MenuMode, rect::BoxObject};
-use crate::ui::colors::theme::{BACKGROUND, FPS_LABEL};
+use ui::{
+    menu::UiMenu,
+    label::UiLabel,
+    enums::MenuMode,
+    rect::BoxObject,
+    colors::theme::{get_temp_color, BACKGROUND, FPS_LABEL}
+};
 
-pub const UI_KEY_MENU: &str = "main_menu";
-pub const UI_KEY_FPS: &str = "fps";
+pub struct Fonts<'a> {
+    pub small: Font<'a, 'static>,
+    pub medium: Font<'a, 'static>,
+    pub large: Font<'a, 'static>,
+}
+
+// °C: CPU, GPU, DDR
+fn read_temperature(zone: u8) -> Option<f32> {
+    let path = format!("/sys/class/thermal/thermal_zone{}/temp", zone);
+    let content = fs::read_to_string(path).ok()?;
+    let temp_milli_celsius: i32 = content.trim().parse().ok()?;
+    Some(temp_milli_celsius as f32 / 1000.0)
+}
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let sdl_context = sdl2::init()?;
@@ -37,12 +55,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .map_err(|e| e.to_string())?;
 
     let ttf_context = sdl2::ttf::init().map_err(|e| e.to_string())?;
-    let font = ttf_context.load_font("/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf", 24)?;
+    // let font = ttf_context.load_font("/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf", 24)?;
+    let fonts = Fonts {
+        small: ttf_context.load_font("/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf", 16)?,
+        medium: ttf_context.load_font("/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf", 24)?,
+        large: ttf_context.load_font("/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf", 32)?,
+    };
     let texture_creator = canvas.texture_creator();
-    let mut ui_manager = UiManager::new(&mut canvas, &font, &texture_creator);
 
-    let total_objects: usize = 12; // 30_000
     let mut event_pump = sdl_context.event_pump()?;
+    let total_objects: usize = 12; // 30_000
     let mut objects: Vec<BoxObject> = (0..total_objects)
         .map(|_| BoxObject::new((display_mode.w, display_mode.h)))
         .collect();
@@ -60,27 +82,46 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     ];
 
     // UI
-    ui_manager.create_menu(
-        UI_KEY_MENU,
+    let mut menu = UiMenu::new(
         items,
-        sdl2::rect::Point::new(210, 180),
+        sdl2::rect::Point::new(195, 182),
         40,
     );
-    ui_manager.create_label(
-        UI_KEY_FPS,
+    let mut label_fps = UiLabel::new(
         "FPS: 0",
         sdl2::rect::Point::new(2, 4),
         FPS_LABEL,
         false,
+        &fonts.medium,
+    )?;
+    // temperature
+    let mut temperature_cpu = UiLabel::new(
+        "CPU: * °C",
+        sdl2::rect::Point::new(2, 44),
+        FPS_LABEL,
+        false,
+        &fonts.small
+    )?;
+    let mut temperature_gpu = UiLabel::new(
+        "GPU: * °C",
+        sdl2::rect::Point::new(2, 69),
+        FPS_LABEL,
+        false,
+        &fonts.small
+    )?;
+    let mut temperature_ddr = UiLabel::new(
+        "DDR: * °C",
+        sdl2::rect::Point::new(2, 94),
+        FPS_LABEL,
+        false,
+        &fonts.small
     )?;
 
     'running: loop {
         for event in event_pump.poll_iter() {
             match event {
                 Event::ControllerButtonDown { button, .. } => {
-                    if let Some((selected, mode)) = ui_manager
-                        .get_menu_mut(UI_KEY_MENU)
-                        .map(|m| m.handle_menu_input(button))
+                    if let (selected, mode) = menu.handle_menu_input(button)
                     {
                         match mode {
                             MenuMode::Basic => { /* ... */ }
@@ -94,12 +135,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
 
-        ui_manager.clear_background(BACKGROUND);
-        // Move all objects & update
-        objects.iter_mut().try_for_each(|obj| {
+        canvas.set_blend_mode(sdl2::render::BlendMode::None);
+        canvas.clear();
+        canvas.set_draw_color(BACKGROUND);
+        canvas.fill_rect(None)?;
+
+        for obj in &mut objects {
             obj.update((display_mode.w, display_mode.h));
-            ui_manager.draw_rect(obj.color, obj.rect)
-        })?;
+            obj.draw(&mut canvas)?;
+        }
+
 
         // FPS Calculation
         frame_count += 1;
@@ -113,12 +158,38 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             if new_fps != fps_text_buf {
                 fps_text_buf.clear();
                 fps_text_buf.push_str(&new_fps);
-                ui_manager.update_text(UI_KEY_FPS, &fps_text_buf);
+                label_fps.update_text(&fps_text_buf, &fonts.medium, None);
             }
+
+            let temp_cpu = read_temperature(0).unwrap();
+            let temp_gpu = read_temperature(1).unwrap();
+            let temp_ddr = read_temperature(3).unwrap();
+
+
+            temperature_cpu.update_text(
+                &format!("CPU: {:.1} °C" , temp_cpu),
+                &fonts.small,
+                Some(get_temp_color(temp_cpu))
+            )?;
+            temperature_gpu.update_text(
+                &format!("GPU: {:.1} °C" , temp_gpu),
+                &fonts.small,
+                Some(get_temp_color(temp_gpu))
+            )?;
+            temperature_ddr.update_text(
+                &format!("DDR: {:.1} °C" , temp_ddr),
+                &fonts.small,
+                Some(get_temp_color(temp_ddr))
+            )?;
         }
 
-        ui_manager.draw_all()?;
-        ui_manager.end_frame();
+        menu.draw(&mut canvas, &fonts.large, &texture_creator)?;
+        label_fps.draw(&mut canvas, &texture_creator)?;
+        temperature_cpu.draw(&mut canvas, &texture_creator)?;
+        temperature_gpu.draw(&mut canvas, &texture_creator)?;
+        temperature_ddr.draw(&mut canvas,  &texture_creator)?;
+
+        canvas.present();
     }
 
     Ok(())

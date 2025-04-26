@@ -1,6 +1,8 @@
 use rand::Rng;
 use sdl2::pixels::Color;
 use sdl2::rect::Rect;
+use sdl2::render::Canvas;
+use sdl2::video::Window;
 
 pub struct BoxObject {
     pub rect: Rect,
@@ -37,5 +39,10 @@ impl BoxObject {
         if self.rect.top() < 0 || self.rect.bottom() > bounds.1 {
             self.velocity.1 *= -1;
         }
+    }
+
+    pub fn draw(&self, canvas: &mut Canvas<Window>) -> Result<(), String> {
+        canvas.set_draw_color(self.color);
+        canvas.fill_rect(self.rect)
     }
 }
