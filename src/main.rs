@@ -158,7 +158,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             if new_fps != fps_text_buf {
                 fps_text_buf.clear();
                 fps_text_buf.push_str(&new_fps);
-                label_fps.update_text(&fps_text_buf, &fonts.medium, None);
+                label_fps.update_text(&fps_text_buf, &fonts.medium, None)?;
             }
 
             let temp_cpu = read_temperature(0).unwrap();
@@ -183,7 +183,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             )?;
         }
 
-        menu.draw(&mut canvas, &fonts.large, &texture_creator)?;
+        menu.draw(&mut canvas, &texture_creator,&fonts.large)?;
         label_fps.draw(&mut canvas, &texture_creator)?;
         temperature_cpu.draw(&mut canvas, &texture_creator)?;
         temperature_gpu.draw(&mut canvas, &texture_creator)?;

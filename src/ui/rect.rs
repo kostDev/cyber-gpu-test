@@ -12,11 +12,11 @@ pub struct BoxObject {
 impl BoxObject {
     pub fn new(display: (i32,i32)) -> Self {
         let mut rng = rand::rng();
-        let x = rng.random_range(0..(&display.0 - 20));
-        let y = rng.random_range(0..(&display.1 - 20));
-        let size = rng.random_range(12..30) as u32;
-        let dx = rng.random_range(1..4) * if rng.random_bool(0.5) { 1 } else { -1 };
-        let dy = rng.random_range(1..4) * if rng.random_bool(0.5) { 1 } else { -1 };
+        let x = rng.random_range(0..(&display.0 - 28));
+        let y = rng.random_range(0..(&display.1 - 28));
+        let size = rng.random_range(12..28) as u32;
+        let dx = rng.random_range(1..3) * if rng.random_bool(0.5) { 1 } else { -1 };
+        let dy = rng.random_range(1..3) * if rng.random_bool(0.5) { 1 } else { -1 };
         let color = Color::RGB(
             rng.random::<u8>(),
             rng.random::<u8>(),

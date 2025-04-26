@@ -43,7 +43,7 @@ impl <'a> UiMenu<'a> {
         }
     }
 
-    pub fn draw<T>(&self, canvas: &mut Canvas<Window>, font: &Font, texture_creator: &TextureCreator<T>) -> Result<(), String> {
+    pub fn draw<T>(&self, canvas: &mut Canvas<Window>, texture_creator: &TextureCreator<T>, font: &Font) -> Result<(), String> {
         if self.items.is_empty() || !self.visible {
             return Ok(());
         }
