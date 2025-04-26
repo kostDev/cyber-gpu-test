@@ -1,48 +1,49 @@
-//! Cyberico GPU Stress Test v0.1
+//! Cyber GPU Stress Test v0.1
 //! Візуальний тест для GPU/VRAM на Knulli / RG35XX Plus
+use std::time::Instant;
+use std::fmt::Write;
+use std::fs;
+use rand::Rng;
+use sdl2::controller::Button;
 use sdl2::event::Event;
-use sdl2::pixels::Color;
-use sdl2::rect::Rect;
-use std::time::{Duration, Instant};
-use rand::{Rng};
+use sdl2::ttf::Font;
 
-const NUM_OBJECTS: usize = 600;
-const SCREEN_WIDTH: u32 = 640;
-const SCREEN_HEIGHT: u32 = 480;
+mod ui;
+use ui::{
+    menu::UiMenu,
+    label::UiLabel,
+    enums::MenuMode,
+    rect::BoxObject,
+    colors::theme::{get_temp_color, BACKGROUND, FPS_LABEL}
+};
 
-struct BoxObject {
-    rect: Rect,
-    color: Color,
-    velocity: (i32, i32),
+pub struct Fonts<'a> {
+    pub small: Font<'a, 'static>,
+    pub medium: Font<'a, 'static>,
+    pub large: Font<'a, 'static>,
 }
 
-fn random_box() -> BoxObject {
-    let mut rng = rand::rng();
-    let x = rng.random_range(0..(SCREEN_WIDTH - 20)) as i32;
-    let y = rng.random_range(0..(SCREEN_HEIGHT - 20)) as i32;
-    let w = rng.random_range(10..30) as u32;
-    let h = rng.random_range(10..30) as u32;
-    let dx = rng.random_range(-3..4);
-    let dy = rng.random_range(-3..4);
-    let color = Color::RGB(
-        rng.random::<u8>(),
-        rng.random::<u8>(),
-        rng.random::<u8>(),
-    );
-
-    BoxObject {
-        rect: Rect::new(x, y, w, h),
-        color,
-        velocity: (dx, dy),
-    }
+// °C: CPU, GPU, DDR
+fn read_temperature(zone: u8) -> Option<f32> {
+    let path = format!("/sys/class/thermal/thermal_zone{}/temp", zone);
+    let content = fs::read_to_string(path).ok()?;
+    let temp_milli_celsius: i32 = content.trim().parse().ok()?;
+    Some(temp_milli_celsius as f32 / 1000.0)
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let sdl_context = sdl2::init()?;
     let video_subsystem = sdl_context.video()?;
+    let display_mode = video_subsystem.desktop_display_mode(0)?;
+    let controller_subsystem = sdl_context.game_controller()?;
+    let available = controller_subsystem.num_joysticks()?;
+    let mut _controller = None;
+    if available > 0 && controller_subsystem.is_game_controller(0) {
+        _controller = Some(controller_subsystem.open(0)?);
+    }
 
     let window = video_subsystem
-        .window("GPU Stress Test", SCREEN_WIDTH, SCREEN_HEIGHT)
+        .window("GPU Stress Test", display_mode.w as u32, display_mode.h as u32)
         .opengl()
         .fullscreen()
         .build()
@@ -56,74 +57,151 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .map_err(|e| e.to_string())?;
 
     let ttf_context = sdl2::ttf::init().map_err(|e| e.to_string())?;
-    let font = ttf_context.load_font("/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf", 24)?;
+    // let font = ttf_context.load_font("/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf", 24)?;
+    let fonts = Fonts {
+        small: ttf_context.load_font("/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf", 16)?,
+        medium: ttf_context.load_font("/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf", 24)?,
+        large: ttf_context.load_font("/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf", 32)?,
+    };
     let texture_creator = canvas.texture_creator();
 
     let mut event_pump = sdl_context.event_pump()?;
-    let mut objects: Vec<BoxObject> = (0..NUM_OBJECTS).map(|_| random_box()).collect();
+    let mut rng = rand::rng();
+    let total_objects: usize = rng.random_range(3..16) as usize; // 30_000
+    let mut objects: Vec<BoxObject> = (0..total_objects)
+        .map(|_| BoxObject::new((display_mode.w, display_mode.h)))
+        .collect();
 
     let mut frame_count = 0;
     let mut last_time = Instant::now();
-    let mut fps = 0;
+    let mut _fps = 0;
+    let mut fps_text_buf = String::new();
 
-    let last_input_at = Instant::now();
-    let timeout_duration = Duration::from_secs(60);
+    let items = vec![
+        (MenuMode::Basic, "GPU Stress Test"),
+        (MenuMode::FillScreen, "Run Boxes Mode"),
+        (MenuMode::Particle, "Run Particle Mode"),
+        (MenuMode::Exit, "Exit"),
+    ];
+
+    // UI
+    let mut menu = UiMenu::new(
+        items,
+        sdl2::rect::Point::new(195, 182),
+        40,
+    );
+    let mut label_fps = UiLabel::new(
+        "FPS: 0",
+        sdl2::rect::Point::new(2, 4),
+        FPS_LABEL,
+        false,
+        &fonts.medium,
+    )?;
+    // temperature
+    let mut temperature_cpu = UiLabel::new(
+        "CPU: * °C",
+        sdl2::rect::Point::new(2, 44),
+        FPS_LABEL,
+        false,
+        &fonts.small
+    )?;
+    let mut temperature_gpu = UiLabel::new(
+        "GPU: * °C",
+        sdl2::rect::Point::new(2, 69),
+        FPS_LABEL,
+        false,
+        &fonts.small
+    )?;
+    let mut temperature_ddr = UiLabel::new(
+        "DDR: * °C",
+        sdl2::rect::Point::new(2, 94),
+        FPS_LABEL,
+        false,
+        &fonts.small
+    )?;
 
     'running: loop {
         for event in event_pump.poll_iter() {
-            if let Event::Quit { .. } = event {
-                break 'running;
+            match event {
+                Event::ControllerButtonDown { button, .. } => {
+                    match button {
+                        Button::Guide => {
+                            menu.show();
+                        }
+                        Button::DPadDown => menu.move_down(),
+                        Button::DPadUp => menu.move_up(),
+                        Button::Start | Button::B => {
+                            match menu.handle_select() {
+                                MenuMode::Basic => { /* ... */ }
+                                MenuMode::FillScreen => { /* ... */ }
+                                MenuMode::Particle => { /* ... */ }
+                                MenuMode::Exit => { break 'running },
+                                _ => {}
+                            }
+                        }
+                        _ => {}
+                    }
+
+                }
+                _ => {}
             }
         }
 
-        // Move all objects
-        for obj in &mut objects {
-            obj.rect.set_x(obj.rect.x() + obj.velocity.0);
-            obj.rect.set_y(obj.rect.y() + obj.velocity.1);
-
-            if obj.rect.left() < 0 || obj.rect.right() as u32 > SCREEN_WIDTH {
-                obj.velocity.0 *= -1;
-            }
-            if obj.rect.top() < 0 || obj.rect.bottom() as u32 > SCREEN_HEIGHT {
-                obj.velocity.1 *= -1;
-            }
-        }
-
-        canvas.set_draw_color(Color::RGB(20, 20, 20));
+        canvas.set_blend_mode(sdl2::render::BlendMode::None);
         canvas.clear();
+        canvas.set_draw_color(BACKGROUND);
+        canvas.fill_rect(None)?;
 
-        for obj in &objects {
-            canvas.set_draw_color(obj.color);
-            canvas.fill_rect(obj.rect)?;
+        for obj in &mut objects {
+            obj.update((display_mode.w, display_mode.h));
+            obj.draw(&mut canvas)?;
         }
+
 
         // FPS Calculation
         frame_count += 1;
         if last_time.elapsed().as_secs_f32() >= 1.0 {
-            fps = frame_count;
+            _fps = frame_count;
             frame_count = 0;
             last_time = Instant::now();
+
+            let new_fps = format!("FPS: {}", _fps);
+
+            if new_fps != fps_text_buf {
+                fps_text_buf.clear();
+                fps_text_buf.push_str(&new_fps);
+                label_fps.update_text(&fps_text_buf, &fonts.medium, None)?;
+            }
+
+            let temp_cpu = read_temperature(0).unwrap();
+            let temp_gpu = read_temperature(1).unwrap();
+            let temp_ddr = read_temperature(3).unwrap();
+
+
+            temperature_cpu.update_text(
+                &format!("CPU: {:.1} °C" , temp_cpu),
+                &fonts.small,
+                Some(get_temp_color(temp_cpu))
+            )?;
+            temperature_gpu.update_text(
+                &format!("GPU: {:.1} °C" , temp_gpu),
+                &fonts.small,
+                Some(get_temp_color(temp_gpu))
+            )?;
+            temperature_ddr.update_text(
+                &format!("DDR: {:.1} °C" , temp_ddr),
+                &fonts.small,
+                Some(get_temp_color(temp_ddr))
+            )?;
         }
-        let fps_text = format!("FPS: {}", fps);
-        let surface = font.render(&fps_text).blended(Color::RGB(255, 255, 255))?;
-        // Background cover for FPS text
-        canvas.set_blend_mode(sdl2::render::BlendMode::Blend);
-        canvas.set_draw_color(Color::RGBA(0, 0, 0, 148));
-        // (fps_text.len() * 20) as u32
-        canvas.fill_rect(Rect::new(0, 0, surface.width() + 8, surface.height() + 8))?;
-        canvas.set_blend_mode(sdl2::render::BlendMode::None);
-        // FPS text render
-        let texture = texture_creator.create_texture_from_surface(&surface)?;
-        let target = sdl2::rect::Rect::new(2, 4, surface.width(), surface.height());
-        canvas.copy(&texture, None, Some(target))?;
+
+        menu.draw(&mut canvas, &texture_creator,&fonts.large)?;
+        label_fps.draw(&mut canvas, &texture_creator)?;
+        temperature_cpu.draw(&mut canvas, &texture_creator)?;
+        temperature_gpu.draw(&mut canvas, &texture_creator)?;
+        temperature_ddr.draw(&mut canvas,  &texture_creator)?;
 
         canvas.present();
-        std::thread::sleep(Duration::from_millis(16));
-
-        if last_input_at.elapsed() >= timeout_duration {
-            println!("⏱️ Немає активності 60 секунд — вихід...");
-            break 'running;
-        }
     }
 
     Ok(())
