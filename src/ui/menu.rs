@@ -1,6 +1,5 @@
 //! Minimal UI library base for Cyber GPU Test
 //! Provides a simple structure for rendering interactive UI components like menus
-use sdl2::controller::Button;
 use sdl2::rect::{Point, Rect};
 use sdl2::render::{Canvas, TextureCreator};
 use sdl2::ttf::Font;
@@ -13,7 +12,7 @@ pub struct UiMenu<'a> {
     pub item_index: usize,
     pub position: Point,
     pub spacing: i32,
-    visible: bool,
+    selected: bool,
 }
 
 impl <'a> UiMenu<'a> {
@@ -23,40 +22,42 @@ impl <'a> UiMenu<'a> {
             item_index: 0,
             position,
             spacing,
-            visible: true,
+            selected: false,
         }
     }
 
     pub fn move_up(&mut self) {
-        if self.item_index > 0 {
-            self.item_index -= 1;
-        } else {
-            self.item_index = self.items.len() - 1;
+        if !self.selected {
+            self.item_index = if self.item_index > 0 {
+                self.item_index - 1
+            } else {
+                self.items.len() - 1
+            }
         }
+
     }
 
     pub fn move_down(&mut self) {
-        if self.item_index + 1 < self.items.len() {
-            self.item_index += 1;
-        } else {
-            self.item_index = 0;
+        if !self.selected {
+            self.item_index = (self.item_index + 1) % self.items.len();
         }
+
     }
 
     pub fn hide(&mut self) {
-        if self.visible {
-            self.visible = false;
+        if !self.selected {
+            self.selected = true;
         }
     }
 
     pub fn show(&mut self) {
-        if !self.visible {
-            self.visible = true;
+        if self.selected {
+            self.selected = false;
         }
     }
 
     pub fn draw<T>(&self, canvas: &mut Canvas<Window>, texture_creator: &TextureCreator<T>, font: &Font) -> Result<(), String> {
-        if !self.visible {
+        if self.selected {
             return Ok(());
         }
 
@@ -87,8 +88,11 @@ impl <'a> UiMenu<'a> {
         Ok(())
     }
 
-    pub fn handle_select(&mut self) -> MenuMode {
-        self.items[self.item_index].0
+    pub fn selected_item(&self) -> Option<MenuMode> {
+        if self.selected {
+            return Some(self.items[self.item_index].0)
+        }
+        None
     }
 }
 

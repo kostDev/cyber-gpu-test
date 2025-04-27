@@ -6,7 +6,7 @@ pub mod theme {
     pub const TEXT_HIGHLIGHTED: Color = Color::RGB(255, 255, 0);
     pub const BACKGROUND: Color = Color::RGB(0, 0, 0);
     pub const FPS_LABEL: Color = Color::RGB(100, 255, 100);
-    pub const BUTTON_LABEL: Color = Color::RGB(255, 100, 100);
+    pub const OBJECTS_LABEL: Color = Color::RGB(123, 123, 123);
 
     pub const TEMP_COLOR_DANGER: Color = Color::RGB(246, 4, 125);
     pub const TEMP_COLOR_HOT: Color = Color::RGB(246, 32, 0);

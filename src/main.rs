@@ -1,29 +1,34 @@
 //! Cyber GPU Stress Test v0.1
 //! Візуальний тест для GPU/VRAM на Knulli / RG35XX Plus
-use std::time::Instant;
+use std::time::{Instant, Duration};
 use std::fmt::Write;
 use std::fs;
-use rand::Rng;
 use sdl2::controller::Button;
 use sdl2::event::Event;
 use sdl2::ttf::Font;
 
 mod ui;
+mod stress;
+
 use ui::{
     menu::UiMenu,
     label::UiLabel,
     enums::MenuMode,
-    rect::BoxObject,
-    colors::theme::{get_temp_color, BACKGROUND, FPS_LABEL}
+    colors::theme::{get_temp_color, BACKGROUND, TEXT_NORMAL, OBJECTS_LABEL}
 };
+use crate::stress::relax::Relax;
 
 pub struct Fonts<'a> {
-    pub small: Font<'a, 'static>,
-    pub medium: Font<'a, 'static>,
-    pub large: Font<'a, 'static>,
+    pub xs: Font<'a, 'static>,
+    pub sm: Font<'a, 'static>,
+    pub md: Font<'a, 'static>,
+    pub lg: Font<'a, 'static>,
 }
 
-// °C: CPU, GPU, DDR
+// TEMP °C: CPU, GPU, DDR
+// CPU: /sys/class/thermal/thermal_zone{0}/temp
+// GPU: /sys/class/thermal/thermal_zone{1}/temp
+// DDR: /sys/class/thermal/thermal_zone{3}/temp
 fn read_temperature(zone: u8) -> Option<f32> {
     let path = format!("/sys/class/thermal/thermal_zone{}/temp", zone);
     let content = fs::read_to_string(path).ok()?;
@@ -52,27 +57,25 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut canvas = window
         .into_canvas()
         .accelerated()
-        .present_vsync()
+        // .present_vsync()
         .build()
         .map_err(|e| e.to_string())?;
 
     let ttf_context = sdl2::ttf::init().map_err(|e| e.to_string())?;
-    // let font = ttf_context.load_font("/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf", 24)?;
     let fonts = Fonts {
-        small: ttf_context.load_font("/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf", 16)?,
-        medium: ttf_context.load_font("/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf", 24)?,
-        large: ttf_context.load_font("/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf", 32)?,
+        xs: ttf_context.load_font("/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf", 12)?,
+        sm: ttf_context.load_font("/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf", 16)?,
+        md: ttf_context.load_font("/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf", 24)?,
+        lg: ttf_context.load_font("/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf", 32)?,
     };
     let texture_creator = canvas.texture_creator();
 
     let mut event_pump = sdl_context.event_pump()?;
-    let mut rng = rand::rng();
-    let total_objects: usize = rng.random_range(3..16) as usize; // 30_000
-    let mut objects: Vec<BoxObject> = (0..total_objects)
-        .map(|_| BoxObject::new((display_mode.w, display_mode.h)))
-        .collect();
+    // init modes
+    let mut relax_mode = Relax::new(42, &display_mode);
 
     let mut frame_count = 0;
+    let mut total_rect_obj = 0;
     let mut last_time = Instant::now();
     let mut _fps = 0;
     let mut fps_text_buf = String::new();
@@ -81,6 +84,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         (MenuMode::Basic, "GPU Stress Test"),
         (MenuMode::FillScreen, "Run Boxes Mode"),
         (MenuMode::Particle, "Run Particle Mode"),
+        (MenuMode::Relax, "Run Relax Mode"),
         (MenuMode::Exit, "Exit"),
     ];
 
@@ -93,51 +97,57 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut label_fps = UiLabel::new(
         "FPS: 0",
         sdl2::rect::Point::new(2, 4),
-        FPS_LABEL,
+        TEXT_NORMAL,
         false,
-        &fonts.medium,
+        &fonts.md,
     )?;
     // temperature
     let mut temperature_cpu = UiLabel::new(
         "CPU: * °C",
-        sdl2::rect::Point::new(2, 44),
-        FPS_LABEL,
+        sdl2::rect::Point::new(2, 42),
+        TEXT_NORMAL,
         false,
-        &fonts.small
+        &fonts.xs,
     )?;
     let mut temperature_gpu = UiLabel::new(
         "GPU: * °C",
-        sdl2::rect::Point::new(2, 69),
-        FPS_LABEL,
+        sdl2::rect::Point::new(2, 60),
+        TEXT_NORMAL,
         false,
-        &fonts.small
+        &fonts.xs
     )?;
     let mut temperature_ddr = UiLabel::new(
         "DDR: * °C",
-        sdl2::rect::Point::new(2, 94),
-        FPS_LABEL,
+        sdl2::rect::Point::new(2, 78),
+        TEXT_NORMAL,
         false,
-        &fonts.small
+        &fonts.xs
+    )?;
+    let mut label_rect_objs = UiLabel::new(
+        "ROB: 0",
+        sdl2::rect::Point::new(2, 96),
+        OBJECTS_LABEL,
+        false,
+        &fonts.xs,
     )?;
 
     'running: loop {
+        let frame_start = Instant::now();
+
         for event in event_pump.poll_iter() {
             match event {
                 Event::ControllerButtonDown { button, .. } => {
                     match button {
                         Button::Guide => {
                             menu.show();
+                            if total_rect_obj > 0 {
+                                total_rect_obj = 0;
+                            }
                         }
                         Button::DPadDown => menu.move_down(),
                         Button::DPadUp => menu.move_up(),
                         Button::Start | Button::B => {
-                            match menu.handle_select() {
-                                MenuMode::Basic => { /* ... */ }
-                                MenuMode::FillScreen => { /* ... */ }
-                                MenuMode::Particle => { /* ... */ }
-                                MenuMode::Exit => { break 'running },
-                                _ => {}
-                            }
+                           menu.hide();
                         }
                         _ => {}
                     }
@@ -152,10 +162,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         canvas.set_draw_color(BACKGROUND);
         canvas.fill_rect(None)?;
 
-        for obj in &mut objects {
-            obj.update((display_mode.w, display_mode.h));
-            obj.draw(&mut canvas)?;
-        }
 
 
         // FPS Calculation
@@ -170,38 +176,65 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             if new_fps != fps_text_buf {
                 fps_text_buf.clear();
                 fps_text_buf.push_str(&new_fps);
-                label_fps.update_text(&fps_text_buf, &fonts.medium, None)?;
+                label_fps.update_text(&fps_text_buf, &fonts.md, None)?;
             }
 
             let temp_cpu = read_temperature(0).unwrap();
             let temp_gpu = read_temperature(1).unwrap();
             let temp_ddr = read_temperature(3).unwrap();
 
-
             temperature_cpu.update_text(
                 &format!("CPU: {:.1} °C" , temp_cpu),
-                &fonts.small,
+                &fonts.xs,
                 Some(get_temp_color(temp_cpu))
             )?;
             temperature_gpu.update_text(
                 &format!("GPU: {:.1} °C" , temp_gpu),
-                &fonts.small,
+                &fonts.xs,
                 Some(get_temp_color(temp_gpu))
             )?;
             temperature_ddr.update_text(
                 &format!("DDR: {:.1} °C" , temp_ddr),
-                &fonts.small,
+                &fonts.xs,
                 Some(get_temp_color(temp_ddr))
             )?;
-        }
 
-        menu.draw(&mut canvas, &texture_creator,&fonts.large)?;
+            label_rect_objs.update_text(
+                &format!("ROB: {}" , total_rect_obj),
+                &fonts.xs,
+                None
+            )?;
+        }
+        // render mode
+        if let Some(selected) = menu.selected_item() {
+            match selected {
+                MenuMode::Basic => { /* ... */ }
+                MenuMode::FillScreen => { /* ... */ }
+                MenuMode::Particle => { /* ... */ }
+                MenuMode::Relax => {
+                    for obj in &mut relax_mode.objects {
+                        obj.update((display_mode.w, display_mode.h));
+                        obj.draw(&mut canvas)?;
+                    }
+                    total_rect_obj = relax_mode.count();
+                }
+                MenuMode::Exit => { break 'running },
+            }
+        }
+        // ui render
+        menu.draw(&mut canvas, &texture_creator,&fonts.lg)?;
         label_fps.draw(&mut canvas, &texture_creator)?;
         temperature_cpu.draw(&mut canvas, &texture_creator)?;
         temperature_gpu.draw(&mut canvas, &texture_creator)?;
         temperature_ddr.draw(&mut canvas,  &texture_creator)?;
+        label_rect_objs.draw(&mut canvas,  &texture_creator)?;
 
         canvas.present();
+
+        let frame_time = frame_start.elapsed();
+        if frame_time < Duration::from_millis(1) {
+            std::thread::sleep(Duration::from_millis(1) - frame_time);
+        }
     }
 
     Ok(())
