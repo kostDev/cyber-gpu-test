@@ -1,5 +1,5 @@
 //! Cyber GPU Stress Test v0.1
-//! Візуальний тест для GPU/VRAM на Knulli / RG35XX Plus
+//! Візуальний тест для GPU/VRAM на RG35XX Plus
 use std::time::{Instant, Duration};
 use std::fmt::Write;
 use std::fs;
@@ -16,7 +16,7 @@ use ui::{
     enums::MenuMode,
     colors::theme::{get_temp_color, BACKGROUND, TEXT_NORMAL, OBJECTS_LABEL}
 };
-use crate::stress::relax::Relax;
+use stress::relax::Relax;
 
 pub struct Fonts<'a> {
     pub xs: Font<'a, 'static>,
@@ -212,10 +212,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 MenuMode::FillScreen => { /* ... */ }
                 MenuMode::Particle => { /* ... */ }
                 MenuMode::Relax => {
-                    for obj in &mut relax_mode.objects {
-                        obj.update((display_mode.w, display_mode.h));
-                        obj.draw(&mut canvas)?;
-                    }
+                    relax_mode.draw(&mut canvas, &display_mode)?;
                     total_rect_obj = relax_mode.count();
                 }
                 MenuMode::Exit => { break 'running },
