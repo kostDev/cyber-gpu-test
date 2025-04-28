@@ -17,6 +17,7 @@ use ui::{
     colors::theme::{get_temp_color, BACKGROUND, TEXT_NORMAL, OBJECTS_LABEL}
 };
 use stress::relax::Relax;
+use crate::stress::script::StressScript;
 
 pub struct Fonts<'a> {
     pub xs: Font<'a, 'static>,
@@ -72,7 +73,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut event_pump = sdl_context.event_pump()?;
     // init modes
-    let mut relax_mode = Relax::new(42, &display_mode);
+    let mut relax_obj = Relax::new(42, &display_mode);
+    let relax_mode: &mut dyn StressScript = &mut relax_obj;
 
     let mut frame_count = 0;
     let mut total_rect_obj = 0;
