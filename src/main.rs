@@ -17,6 +17,7 @@ use ui::{
     colors::theme::{get_temp_color, BACKGROUND, TEXT_NORMAL, OBJECTS_LABEL}
 };
 use stress::relax::Relax;
+use crate::stress::basic::BasicStress;
 use crate::stress::script::StressScript;
 
 pub struct Fonts<'a> {
@@ -74,12 +75,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut event_pump = sdl_context.event_pump()?;
     // init modes
     let mut relax_obj = Relax::new(42, &display_mode);
+    let mut basic_obj = BasicStress::new();
     let relax_mode: &mut dyn StressScript = &mut relax_obj;
+    let basic_mode: &mut dyn StressScript = &mut basic_obj;
 
     let mut frame_count = 0;
     let mut total_rect_obj = 0;
     let mut last_time = Instant::now();
-    let mut _fps = 0;
+    let mut fps = 0;
     let mut fps_text_buf = String::new();
 
     let items = vec![
@@ -143,6 +146,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         Button::Guide => {
                             menu.show();
                             if total_rect_obj > 0 {
+                                basic_obj.finish();
                                 total_rect_obj = 0;
                             }
                         }
@@ -168,12 +172,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         // FPS Calculation
         frame_count += 1;
+        // per 1 second
         if last_time.elapsed().as_secs_f32() >= 1.0 {
-            _fps = frame_count;
+            fps = frame_count;
             frame_count = 0;
             last_time = Instant::now();
 
-            let new_fps = format!("FPS: {}", _fps);
+            let new_fps = format!("FPS: {}", fps);
 
             if new_fps != fps_text_buf {
                 fps_text_buf.clear();
@@ -210,7 +215,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         // render mode
         if let Some(selected) = menu.selected_item() {
             match selected {
-                MenuMode::Basic => { /* ... */ }
+                MenuMode::Basic => {
+                    basic_mode.draw(&mut canvas, &display_mode)?;
+                    total_rect_obj = basic_obj.count();
+                }
                 MenuMode::FillScreen => { /* ... */ }
                 MenuMode::Particle => { /* ... */ }
                 MenuMode::Relax => {

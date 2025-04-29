@@ -12,9 +12,7 @@ pub trait StressScript {
             obj.draw(canvas)
         })
     }
-    fn count(&mut self) -> usize {
-        self.objects_mut().len()
-    }
+    fn count(&mut self) -> usize { self.objects_mut().len() }
 }
 
 
