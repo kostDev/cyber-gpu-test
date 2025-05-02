@@ -6,7 +6,7 @@
 
 This tool renders hundreds of animated boxes bouncing on the screen to measure rendering performance and observe FPS behavior under heavy graphical load.
 
-![Screenshot](./images/cyber-gpu-test.png)
+![Screenshot](./images/preview.png)
 
 ---
 
@@ -103,8 +103,8 @@ fi
 ## 🎮 Verified On
 
 - Anbernic RG35XX Plus
-    - Knulli CFW v0.3+
-    - SDL2 framebuffer (no X11)
+- Knulli CFW v0.3+
+- SDL2 framebuffer (no X11)
 
 ## For Build on different platform:
 - `.cargo/config.toml` change `build` and `target` as option
