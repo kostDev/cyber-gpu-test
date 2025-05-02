@@ -3,6 +3,7 @@ use sdl2::pixels::Color;
 use sdl2::rect::Rect;
 use sdl2::render::Canvas;
 use sdl2::video::Window;
+use crate::ui::colors::theme::get_random_rgb_color;
 
 pub struct BoxObject {
     pub rect: Rect,
@@ -17,15 +18,10 @@ impl BoxObject {
         let size = rng.random_range(12..28) as u32;
         let dx = rng.random_range(1..3) * if rng.random_bool(0.5) { 1 } else { -1 };
         let dy = rng.random_range(1..3) * if rng.random_bool(0.5) { 1 } else { -1 };
-        let color = Color::RGB(
-            rng.random::<u8>(),
-            rng.random::<u8>(),
-            rng.random::<u8>(),
-        );
 
         BoxObject {
             rect: Rect::new(x, y, size, size),
-            color,
+            color: get_random_rgb_color(rng),
             velocity: (dx, dy),
         }
     }
@@ -44,5 +40,9 @@ impl BoxObject {
     pub fn draw(&self, canvas: &mut Canvas<Window>) -> Result<(), String> {
         canvas.set_draw_color(self.color);
         canvas.fill_rect(self.rect)
+    }
+
+    pub fn change_color(&mut self) {
+        self.color = get_random_rgb_color(rand::rng());
     }
 }

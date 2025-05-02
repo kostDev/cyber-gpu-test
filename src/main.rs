@@ -14,11 +14,10 @@ use ui::{
     menu::UiMenu,
     label::UiLabel,
     enums::MenuMode,
-    colors::theme::{get_temp_color, BACKGROUND, TEXT_NORMAL, OBJECTS_LABEL}
+    colors::theme::{get_temp_color, BACKGROUND, TEXT_NORMAL, OBJECTS_LABEL, UI_BACKGROUND},
+    background::UiBackground
 };
-use stress::relax::Relax;
-use crate::stress::basic::BasicStress;
-use crate::stress::script::StressScript;
+use stress::{relax::Relax, basic::BasicStress};
 
 pub struct Fonts<'a> {
     pub xs: Font<'a, 'static>,
@@ -74,26 +73,30 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut event_pump = sdl_context.event_pump()?;
     // init modes
-    let mut relax_obj = Relax::new(42, &display_mode);
-    let mut basic_obj = BasicStress::new();
-    let relax_mode: &mut dyn StressScript = &mut relax_obj;
-    let basic_mode: &mut dyn StressScript = &mut basic_obj;
+    let mut relax_mode = Relax::new(42, &display_mode);
+    let mut basic_mode = BasicStress::new();
 
     let mut frame_count = 0;
-    let mut total_rect_obj = 0;
+    let mut total_rect = 0;
     let mut last_time = Instant::now();
     let mut fps = 0;
     let mut fps_text_buf = String::new();
 
     let items = vec![
         (MenuMode::Basic, "GPU Stress Test"),
-        (MenuMode::FillScreen, "Run Boxes Mode"),
+        (MenuMode::Collide, "Run Collide Mode"),
         (MenuMode::Particle, "Run Particle Mode"),
         (MenuMode::Relax, "Run Relax Mode"),
         (MenuMode::Exit, "Exit"),
     ];
 
     // UI
+    let bg = UiBackground::new(
+        sdl2::rect::Point::new(0, 0),
+        (132, 120),
+        UI_BACKGROUND,
+        true,
+    );
     let mut menu = UiMenu::new(
         items,
         sdl2::rect::Point::new(195, 182),
@@ -129,7 +132,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         &fonts.xs
     )?;
     let mut label_rect_objs = UiLabel::new(
-        "ROB: 0",
+        "RECT: 0",
         sdl2::rect::Point::new(2, 96),
         OBJECTS_LABEL,
         false,
@@ -144,11 +147,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 Event::ControllerButtonDown { button, .. } => {
                     match button {
                         Button::Guide => {
+                            basic_mode.finish();
                             menu.show();
-                            if total_rect_obj > 0 {
-                                basic_obj.finish();
-                                total_rect_obj = 0;
-                            }
+                            total_rect = 0
                         }
                         Button::DPadDown => menu.move_down(),
                         Button::DPadUp => menu.move_up(),
@@ -207,28 +208,32 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             )?;
 
             label_rect_objs.update_text(
-                &format!("ROB: {}" , total_rect_obj),
+                &format!("RECT: {}" , total_rect),
                 &fonts.xs,
                 None
             )?;
+            // activate only per sec
+            basic_mode.watcher(&display_mode, fps);
+            // relax_mode.watcher();
         }
         // render mode
         if let Some(selected) = menu.selected_item() {
             match selected {
                 MenuMode::Basic => {
                     basic_mode.draw(&mut canvas, &display_mode)?;
-                    total_rect_obj = basic_obj.count();
+                    total_rect = basic_mode.count();
                 }
-                MenuMode::FillScreen => { /* ... */ }
+                MenuMode::Collide => { /* ... */ }
                 MenuMode::Particle => { /* ... */ }
                 MenuMode::Relax => {
                     relax_mode.draw(&mut canvas, &display_mode)?;
-                    total_rect_obj = relax_mode.count();
+                    total_rect = relax_mode.count();
                 }
                 MenuMode::Exit => { break 'running },
             }
         }
         // ui render
+        bg.draw(&mut canvas)?;
         menu.draw(&mut canvas, &texture_creator,&fonts.lg)?;
         label_fps.draw(&mut canvas, &texture_creator)?;
         temperature_cpu.draw(&mut canvas, &texture_creator)?;
