@@ -13,9 +13,12 @@ This tool renders hundreds of animated boxes bouncing on the screen to measure r
 ## 🚀 Features
 
 - Realtime FPS display as a visual bar
-- 600+ randomized objects with color and motion
+- randomized objects with color and motion
+- micro UI lib
+- 2 modes (Basic stress test, relax mode ... +2 more in future)
 - Fullscreen rendering for performance testing
-- Auto-exits after 60 seconds of inactivity
+- Monitor values: FPS, CPU/GPU/DDR temperature
+- mini rect benchmark as RECT
 
 ---
 
@@ -102,4 +105,9 @@ fi
 - Anbernic RG35XX Plus
     - Knulli CFW v0.3+
     - SDL2 framebuffer (no X11)
+
+## For Build on different platform:
+- `.cargo/config.toml` change `build` and `target` as option
+- current architecture (aarch64): `"aarch64-unknown-linux-gnu"`
+- current (on docker) linker: `/usr/bin/aarch64-linux-gnu-gcc`
 
