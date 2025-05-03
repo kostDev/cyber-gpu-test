@@ -43,7 +43,12 @@ docker:
 	docker build -t cyberfps-builder .
 
 run:
-	docker run -it -v "$PWD":/cyber-gpu-test cyberfps-debug
+	docker rm -f cybergpu-dev 2>/dev/null || true
+	docker run --rm --name cybergpu-dev -it \
+      -v "$PWD":/cyber-gpu-test \
+      -v cyber-cargo-cache:/root/.cargo \
+      -v cyber-target-cache:/cyber-gpu-test/target \
+      cyberfps-debug
 
 strip:
 	aarch64-linux-gnu-strip $(BINARY)
