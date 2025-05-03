@@ -58,7 +58,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut canvas = window
         .into_canvas()
         .accelerated()
-        // .present_vsync()
         .build()
         .map_err(|e| e.to_string())?;
 
@@ -212,9 +211,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 &fonts.xs,
                 None
             )?;
-            // activate only per sec
+
             basic_mode.watcher(&display_mode, fps);
-            // relax_mode.watcher();
         }
         // render mode
         if let Some(selected) = menu.selected_item() {

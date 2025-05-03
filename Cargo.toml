@@ -6,3 +6,11 @@ edition = "2024"
 [dependencies]
 sdl2 = { version = "0.37.0", features = ["ttf"] }
 rand = "0.9.1"
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = "debuginfo"
+embed-bitcode = true

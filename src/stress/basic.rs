@@ -1,6 +1,6 @@
 use sdl2::render::Canvas;
 use sdl2::video::{DisplayMode, Window};
-use crate::ui::rect::BoxObject;
+use crate::ui::rect::RectObject;
 
 #[repr(i32)]
 enum FpsLevel {
@@ -10,7 +10,7 @@ enum FpsLevel {
 }
 
 pub struct BasicStress {
-    objects: Vec<BoxObject>,
+    objects: Vec<RectObject>,
     activated: bool,
     per_step: i16
 }
@@ -43,7 +43,7 @@ impl BasicStress {
     pub fn watcher(&mut self, display: &DisplayMode, curr_fps: i32) {
         if self.activated && curr_fps >= FpsLevel::low as i32 {
             (0..self.per_step).for_each(|_| {
-                self.objects.push(BoxObject::new((display.w, display.h)));
+                self.objects.push(RectObject::new((display.w, display.h)));
             });
         }
     }
