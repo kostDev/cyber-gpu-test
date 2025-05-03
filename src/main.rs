@@ -6,6 +6,7 @@ use std::fs;
 use sdl2::controller::Button;
 use sdl2::event::Event;
 use sdl2::ttf::Font;
+use sdl2::rect::Point;
 
 mod ui;
 mod stress;
@@ -43,9 +44,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let display_mode = video_subsystem.desktop_display_mode(0)?;
     let controller_subsystem = sdl_context.game_controller()?;
     let available = controller_subsystem.num_joysticks()?;
-    let mut _controller = None;
+
     if available > 0 && controller_subsystem.is_game_controller(0) {
-        _controller = Some(controller_subsystem.open(0)?);
+        let _ = controller_subsystem.open(0);
     }
 
     let window = video_subsystem
@@ -72,8 +73,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut event_pump = sdl_context.event_pump()?;
     // init modes
-    let mut relax_mode = Relax::new(42, &display_mode);
     let mut basic_mode = BasicStress::new();
+    let mut relax_mode = Relax::new(42, &display_mode);
 
     let mut frame_count = 0;
     let mut total_rect = 0;
@@ -91,19 +92,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // UI
     let bg = UiBackground::new(
-        sdl2::rect::Point::new(0, 0),
+        Point::new(0, 0),
         (132, 120),
         UI_BACKGROUND,
         true,
     );
     let mut menu = UiMenu::new(
         items,
-        sdl2::rect::Point::new(195, 182),
+        Point::new(195, 182),
         40,
     );
     let mut label_fps = UiLabel::new(
         "FPS: 0",
-        sdl2::rect::Point::new(2, 4),
+        Point::new(2, 4),
         TEXT_NORMAL,
         false,
         &fonts.md,
@@ -111,28 +112,28 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // temperature
     let mut temperature_cpu = UiLabel::new(
         "CPU: * °C",
-        sdl2::rect::Point::new(2, 42),
+        Point::new(2, 42),
         TEXT_NORMAL,
         false,
         &fonts.xs,
     )?;
     let mut temperature_gpu = UiLabel::new(
         "GPU: * °C",
-        sdl2::rect::Point::new(2, 60),
+        Point::new(2, 60),
         TEXT_NORMAL,
         false,
         &fonts.xs
     )?;
     let mut temperature_ddr = UiLabel::new(
         "DDR: * °C",
-        sdl2::rect::Point::new(2, 78),
+        Point::new(2, 78),
         TEXT_NORMAL,
         false,
         &fonts.xs
     )?;
     let mut label_rect_objs = UiLabel::new(
         "RECT: 0",
-        sdl2::rect::Point::new(2, 96),
+        Point::new(2, 96),
         OBJECTS_LABEL,
         false,
         &fonts.xs,
@@ -168,11 +169,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         canvas.set_draw_color(BACKGROUND);
         canvas.fill_rect(None)?;
 
-
-
-        // FPS Calculation
-        frame_count += 1;
-        // per 1 second
+        frame_count += 1; // FPS Calculation
+        // run only each second
         if last_time.elapsed().as_secs_f32() >= 1.0 {
             fps = frame_count;
             frame_count = 0;
