@@ -114,28 +114,24 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         "CPU: * °C",
         Point::new(2, 42),
         TEXT_NORMAL,
-        false,
         &fonts.xs,
     )?;
     let mut temperature_gpu = UiLabel::new(
         "GPU: * °C",
         Point::new(2, 60),
         TEXT_NORMAL,
-        false,
         &fonts.xs
     )?;
     let mut temperature_ddr = UiLabel::new(
         "DDR: * °C",
         Point::new(2, 78),
         TEXT_NORMAL,
-        false,
         &fonts.xs
     )?;
     let mut label_rect_objs = UiLabel::new(
         "RECT: 0",
         Point::new(2, 96),
         OBJECTS_LABEL,
-        false,
         &fonts.xs,
     )?;
 
