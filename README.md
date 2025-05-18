@@ -1,6 +1,4 @@
-# README.md
-
-# Cyber GPU Stress Test
+# GPU Stress Test
 
 **Cyber GPU Stress Test** is a compact visual stress testing utility designed for devices like **Anbernic RG35XX Plus** running **Knulli Custom Firmware**.
 
