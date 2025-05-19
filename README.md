@@ -4,10 +4,6 @@
 
 This tool renders hundreds of animated boxes bouncing on the screen to measure rendering performance and observe FPS behavior under heavy graphical load.
 
-![Screenshot](./images/preview.png)
-
----
-
 ## 🚀 Features
 
 - Realtime FPS display as a visual bar
