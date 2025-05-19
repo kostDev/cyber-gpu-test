@@ -1,7 +1,6 @@
 //! Cyber GPU Stress Test v0.1
 //! Візуальний тест для GPU/VRAM на RG35XX Plus
 use std::time::{Instant, Duration};
-use std::fmt::Write;
 use std::fs;
 use sdl2::controller::Button;
 use sdl2::event::Event;
@@ -95,7 +94,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         Point::new(0, 0),
         (132, 120),
         UI_BACKGROUND,
-        true,
     );
     let mut menu = UiMenu::new(
         items,
@@ -106,7 +104,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         "FPS: 0",
         Point::new(2, 4),
         TEXT_NORMAL,
-        false,
         &fonts.md,
     )?;
     // temperature
@@ -135,7 +132,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         &fonts.xs,
     )?;
 
-    'running: loop {
+    'prog: loop {
         let frame_start = Instant::now();
 
         for event in event_pump.poll_iter() {
@@ -221,7 +218,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     relax_mode.draw(&mut canvas, &display_mode)?;
                     total_rect = relax_mode.count();
                 }
-                MenuMode::Exit => { break 'running },
+                MenuMode::Exit => { break 'prog },
             }
         }
         // ui render
