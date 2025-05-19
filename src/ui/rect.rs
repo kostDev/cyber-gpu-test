@@ -5,12 +5,12 @@ use sdl2::render::Canvas;
 use sdl2::video::Window;
 use crate::ui::colors::theme::get_random_rgb_color;
 
-pub struct BoxObject {
+pub struct RectObject {
     pub rect: Rect,
     pub color: Color,
     pub velocity: (i32, i32),
 }
-impl BoxObject {
+impl RectObject {
     pub fn new(display: (i32,i32)) -> Self {
         let mut rng = rand::rng();
         let x = rng.random_range(0..(&display.0 - 28));
@@ -19,7 +19,7 @@ impl BoxObject {
         let dx = rng.random_range(1..3) * if rng.random_bool(0.5) { 1 } else { -1 };
         let dy = rng.random_range(1..3) * if rng.random_bool(0.5) { 1 } else { -1 };
 
-        BoxObject {
+        RectObject {
             rect: Rect::new(x, y, size, size),
             color: get_random_rgb_color(rng),
             velocity: (dx, dy),

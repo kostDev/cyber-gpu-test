@@ -12,12 +12,12 @@ pub struct UiBackground {
 }
 
 impl UiBackground {
-    pub fn new(position: Point, size: (u32, u32), color: Color, visible: bool) -> UiBackground {
+    pub fn new(position: Point, size: (u32, u32), color: Color) -> UiBackground {
         UiBackground {
             position,
             size,
             color,
-            visible,
+            visible: true,
             rect: Rect::new(position.x, position.y, size.0, size.1)
         }
     }

@@ -22,10 +22,15 @@ all: build deploy
 # build only inside docker
 build:
 	cargo build --release --target=$(TARGET)
+	aarch64-linux-gnu-strip $(BINARY)
+	@ls -lh $(BINARY)
+
+debug:
+	cargo build --target=$(TARGET)
 
 deploy:
 	$(RG35) "mkdir -p $(REMOTE_PATH)"
-	scp $(BINARY) $(DEVICE):$(REMOTE_PATH)/$(PROJECT_NAME)
+	scp -q $(BINARY) $(DEVICE):$(REMOTE_PATH)/$(PROJECT_NAME)
 	$(RG35) "chmod +x $(REMOTE_PATH)/$(PROJECT_NAME)"
 
 ssh:
@@ -38,5 +43,16 @@ docker:
 	docker build -t cyberfps-builder .
 
 run:
-	docker run -it -v "$PWD":/cyber-gpu-test cyberfps-debug
+	docker rm -f cybergpu-dev 2>/dev/null || true
+	docker run --rm --name cybergpu-dev -it \
+      -v "$PWD":/cyber-gpu-test \
+      -v cyber-cargo-cache:/root/.cargo \
+      -v cyber-target-cache:/cyber-gpu-test/target \
+      cyberfps-debug
+
+strip:
+	aarch64-linux-gnu-strip $(BINARY)
+
+size:
+	@ls -lh $(BINARY)
 

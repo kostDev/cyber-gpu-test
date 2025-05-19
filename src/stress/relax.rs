@@ -1,17 +1,17 @@
 use sdl2::render::Canvas;
 use sdl2::video::{DisplayMode, Window};
-use crate::ui::rect::BoxObject;
+use crate::ui::rect::RectObject;
 
 pub struct Relax {
-    objects: Vec<BoxObject>,
+    objects: Vec<RectObject>,
     activated: bool,
 }
 impl Relax {
     pub fn new(total: usize, display: &DisplayMode) -> Relax {
         // let mut rng = rand::rng();
         // let total_objects: usize = rng.random_range(3..16) as usize;
-        let objects: Vec<BoxObject> = (0..total)
-            .map(|_| BoxObject::new((display.w, display.h)))
+        let objects: Vec<RectObject> = (0..total)
+            .map(|_| RectObject::new((display.w, display.h)))
             .collect();
         Relax { objects, activated: false }
     }
